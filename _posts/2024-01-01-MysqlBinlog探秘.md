@@ -76,6 +76,10 @@ mysql -uroot -proot --default-character-set=utf8
 # 接着创建一个账户，该账号所有 IP 都能够访问
 grant all privileges on *.* to 'root' @'%' identified by 'root';
 
+# 这里为了跟canal官方文件兼容， 创建一个canal用户并开启权限，也可以通过修改canal文件来配置mysql
+CREATE USER canal IDENTIFIED BY 'canal';  
+GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'canal'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'canal'@'%' ;
 # 刷新生效
 FLUSH PRIVILEGES;
 
@@ -89,6 +93,68 @@ show master status;
 
 
 * 至此， 我们搭建好了一个开启binlog日志的mysql
+
+## 搭建Canal
+
+​	同样使用docker 搭建，参考官方文档： [cannal-docker-quickstart](https://github.com/alibaba/canal/wiki/Docker-QuickStart)
+
+* 下载docker镜像
+
+```
+docker pull canal/canal-server:v1.1.1	
+```
+
+* 本地编译canal
+
+```
+git clone git@github.com:alibaba/canal.git
+cd canal/docker &&sudo sh build.sh
+```
+
+* 使用canal自带脚本运行test的instance
+
+```
+sh run.sh -e canal.auto.scan=false \
+		  -e canal.destinations=test \
+		  -e canal.instance.master.address=127.0.0.1:3306  \
+		  -e canal.instance.dbUsername=canal  \
+		  -e canal.instance.dbPassword=canal  \
+		  -e canal.instance.connectionCharset=UTF-8 \
+		  -e canal.instance.tsdb.enable=true \
+		  -e canal.instance.gtidon=false  \
+```
+
+
+
+* 使用canal项目代码进行测试， 执行`com.alibaba.otter.canal.example.SimpleCanalClientTest`，修改数据库， 可以看到控制台监听到了数据库改变
+
+```
+****************************************************
+* Batch Id: [2] ,count : [1] , memsize : [94] , Time : 2024-01-12 19:47:15
+* Start : [mysql-bin.000003:1274:1705060035000(2024-01-12 19:47:15)] 
+* End : [mysql-bin.000003:1274:1705060035000(2024-01-12 19:47:15)] 
+****************************************************
+
+----------------> binlog[mysql-bin.000003:1274] , name[test,] , eventType : QUERY , executeTime : 1705060035000(2024-01-12 19:47:15) , gtid : () , delay : 861 ms
+ddl : true ,  sql ----> create database test
+
+****************************************************
+* Batch Id: [3] ,count : [1] , memsize : [118] , Time : 2024-01-12 19:48:32
+* Start : [mysql-bin.000003:1433:1705060112000(2024-01-12 19:48:32)] 
+* End : [mysql-bin.000003:1433:1705060112000(2024-01-12 19:48:32)] 
+****************************************************
+
+----------------> binlog[mysql-bin.000003:1433] , name[test,xdual] , eventType : CREATE , executeTime : 1705060112000(2024-01-12 19:48:32) , gtid : () , delay : 257 ms
+ddl : true ,  sql ----> create table `xdual` (`ID` int(11) not null)
+```
+
+* 至此，cannal搭建并测试成功
+
+
+
+## Canal技术内幕探究
+
+
 
 
 
