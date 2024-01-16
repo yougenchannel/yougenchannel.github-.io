@@ -162,3 +162,11 @@ ddl : true ,  sql ----> create table `xdual` (`ID` int(11) not null)
 ## 源码地址
 
 [subscribe_binlog](https://github.com/yougenchannel/subscribe_binlog)
+
+
+
+
+
+## 参考文档
+
+canal官方文档： <https://github.com/alibaba/canal/wiki>
